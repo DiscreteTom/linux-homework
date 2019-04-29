@@ -198,5 +198,16 @@ int getConfigAndItems(int argc, char **argv, int *items)
 			break;
 		}
 	}
+
+	// discard the first '--'
+	for (i = 0; i < argc; ++i)
+	{
+		if (!strcmp(argv[i], "--"))
+		{
+			result--;
+			items[i] = 0;
+			break;
+		}
+	}
 	return result;
 }
