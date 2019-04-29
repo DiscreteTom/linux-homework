@@ -18,10 +18,12 @@ struct
 } config;
 
 void getConfigAndItems(int argc, char **argv, int *items);
+void printItem(char *path);
 void printDir(char *path);
 
 int main(int argc, char **argv)
 {
+	int i;
 	int *items = (int *)malloc(sizeof(int) * (argc));
 	if (!items)
 	{
@@ -45,13 +47,12 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		int i;
 		for (i = 0; i < argc; ++i)
 		{
 			if (items[i])
 			{
 				printf("%s\n\n", argv[i]);
-				printDir(argv[i]);
+				printItem(argv[i]);
 			}
 		}
 	}
@@ -61,12 +62,22 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+void printItem(char *path)
+{
+}
+
 void printDir(char *path)
 {
 	DIR *dir = opendir(path);
+	if (!dir)
+	{
+		printf("Can not open dir: %s", path);
+		return;
+	}
 	struct dirent *item;
 	struct stat buf;
-	while (item = readdir(dir)){
+	while (item = readdir(dir))
+	{
 		printf("%s\n", item->d_name);
 	}
 	closedir(dir);
