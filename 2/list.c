@@ -50,7 +50,6 @@ int main(int argc, char **argv)
 		{
 			if (items[i])
 			{
-				printf("%s\n\n", argv[i]);
 				printItem(argv[i]);
 			}
 		}
@@ -68,8 +67,10 @@ void printItem(char *path)
 		printf("Failed to get stat of %s: %m\n", path);
 		return;
 	}
-	if (S_ISDIR(buf.st_mode))
+	if (S_ISDIR(buf.st_mode)){
+		printf("%s:\n", path);
 		printDir(path);
+	}
 	else
 	{
 		// ignore config.a and config.r
@@ -98,8 +99,9 @@ void printDir(char *path)
 	struct dirent *item;
 	while (item = readdir(dir))
 	{
-		printf("%s\n", item->d_name);
+		printf("%s\t", item->d_name);
 	}
+	printf("\n\n");
 	closedir(dir);
 }
 
