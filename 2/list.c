@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <time.h>
+#include <string.h>
 
 static const char *optString = "ral:h:m:";
 static const int MAX_PATH_LENGTH = 255;
@@ -67,7 +68,8 @@ void printItem(char *path)
 		printf("Failed to get stat of %s: %m\n", path);
 		return;
 	}
-	if (S_ISDIR(buf.st_mode)){
+	if (S_ISDIR(buf.st_mode))
+	{
 		printf("%s:\n", path);
 		printDir(path);
 	}
@@ -81,11 +83,10 @@ void printItem(char *path)
 
 int judgeMLH()
 {
-	if ((config.m <= 0 || now - buf.st_ctime < config.m * 60 * 60 * 24)
-	 && (config.l <= 0 || buf.st_size >= config.l)
-	 && (config.h <= 0 || buf.st_size <= config.h))
-	 return 1;
-	else return 0;
+	if ((config.m <= 0 || now - buf.st_ctime < config.m * 60 * 60 * 24) && (config.l <= 0 || buf.st_size >= config.l) && (config.h <= 0 || buf.st_size <= config.h))
+		return 1;
+	else
+		return 0;
 }
 
 void printDir(char *path)
@@ -96,12 +97,46 @@ void printDir(char *path)
 		printf("Failed open dir %s: %m", path);
 		return;
 	}
+
 	struct dirent *item;
+	char fullPath[MAX_PATH_LENGTH];
+
 	while (item = readdir(dir))
 	{
-		printf("%s\t", item->d_name);
+		if (!config.a && item->d_name[0] == '.')
+			continue;
+		if (config.r)
+		{
+			strcpy(fullPath, path);
+			if (fullPath[strlen(fullPath) - 1] != '/')
+				strcat(fullPath, "/");
+			strcat(fullPath, item->d_name);
+			printf("%s\t", fullPath);
+		}
+		else
+			printf("%s\t", item->d_name);
 	}
 	printf("\n\n");
+
+	if (config.r)
+	{
+		rewinddir(dir);
+		while (item = readdir(dir))
+		{
+			if (!config.a && item->d_name[0] == '.')
+				continue;
+			if (item->d_type == DT_DIR && strcmp(item->d_name, ".") && strcmp(item->d_name, ".."))
+			{
+				strcpy(fullPath, path);
+				if (fullPath[strlen(fullPath) - 1] != '/')
+					strcat(fullPath, "/");
+				strcat(fullPath, item->d_name);
+				printf("%s:\n", fullPath);
+				printDir(fullPath);
+			}
+		}
+	}
+
 	closedir(dir);
 }
 
