@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <time.h>
 
 static const char *optString = "ral:h:m:";
 static const int MAX_PATH_LENGTH = 255;
@@ -17,15 +18,19 @@ struct
 	int m;
 } config;
 
+time_t now;
 struct stat buf;
 
 void getConfigAndItems(int argc, char **argv, int *items);
 void printItem(char *path);
 void printDir(char *path);
+int judgeMLH();
 
 int main(int argc, char **argv)
 {
 	int i;
+	time(&now);
+
 	int *items = (int *)malloc(sizeof(int) * (argc));
 	if (!items)
 	{
@@ -66,7 +71,20 @@ void printItem(char *path)
 	if (S_ISDIR(buf.st_mode))
 		printDir(path);
 	else
-		printf("%s\n", path);
+	{
+		// ignore config.a and config.r
+		if (judgeMLH())
+			printf("%s\n", path);
+	}
+}
+
+int judgeMLH()
+{
+	if ((config.m <= 0 || now - buf.st_ctime < config.m * 60 * 60 * 24)
+	 && (config.l <= 0 || buf.st_size >= config.l)
+	 && (config.h <= 0 || buf.st_size <= config.h))
+	 return 1;
+	else return 0;
 }
 
 void printDir(char *path)
