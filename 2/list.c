@@ -22,7 +22,7 @@ struct
 time_t now;
 struct stat buf;
 
-int getConfigAndItems(int argc, char **argv, int *items);
+void getConfig(int argc, char **argv);
 void printItem(char *path);
 void printDir(char *path);
 int judgeMLH();
@@ -32,29 +32,17 @@ int main(int argc, char **argv)
 	int i;
 	time(&now);
 
-	int *items = (int *)malloc(sizeof(int) * (argc));
-	if (!items)
-	{
-		printf("Failed to allocate memory.\n");
-		return 1;
-	}
+	getConfig(argc, argv);
 
-	if (!getConfigAndItems(argc, argv, items))
-	{
+	if (optind >= argc) // print current dir
 		printItem(".");
-	}
 	else
 	{
-		for (i = 0; i < argc; ++i)
-		{
-			if (items[i])
-			{
-				printItem(argv[i]);
-			}
-		}
+		if (!strcmp(argv[optind], "--"))
+			optind++; // ignore the first '--'
+		for (i = optind; i < argc; ++i)
+			printItem(argv[i]);
 	}
-
-	free(items);
 
 	return 0;
 }
@@ -66,17 +54,15 @@ void printItem(char *path)
 		printf("Failed to get stat of %s: %m\n", path);
 		return;
 	}
+
 	if (S_ISDIR(buf.st_mode))
 	{
 		printf("%s:\n", path);
 		printDir(path);
 	}
-	else
-	{
+	else if (judgeMLH())
 		// ignore config.a and config.r
-		if (judgeMLH())
-			printf("%s\n", path);
-	}
+		printf("%s\n", path);
 }
 
 int judgeMLH()
@@ -101,10 +87,13 @@ void printDir(char *path)
 
 	while (item = readdir(dir))
 	{
+		// hide dirs and files start with '.'
 		if (!config.a && item->d_name[0] == '.')
 			continue;
+
 		if (config.r)
 		{
+			// print full path
 			strcpy(fullPath, path);
 			if (fullPath[strlen(fullPath) - 1] != '/')
 				strcat(fullPath, "/");
@@ -118,13 +107,18 @@ void printDir(char *path)
 
 	if (config.r)
 	{
+		// print dir recursively
 		rewinddir(dir);
 		while (item = readdir(dir))
 		{
+			// still hide dirs and files start with '.'
 			if (!config.a && item->d_name[0] == '.')
 				continue;
+
+			// ignore . and ..
 			if (item->d_type == DT_DIR && strcmp(item->d_name, ".") && strcmp(item->d_name, ".."))
 			{
+				// get dir path and print
 				strcpy(fullPath, path);
 				if (fullPath[strlen(fullPath) - 1] != '/')
 					strcat(fullPath, "/");
@@ -138,10 +132,8 @@ void printDir(char *path)
 	closedir(dir);
 }
 
-int getConfigAndItems(int argc, char **argv, int *items)
+void getConfig(int argc, char **argv)
 {
-	int result = argc - 1;
-
 	// init config
 	config.r = 0;
 	config.a = 0;
@@ -150,10 +142,6 @@ int getConfigAndItems(int argc, char **argv, int *items)
 	config.m = 0;
 
 	int i;
-	// init items
-	items[0] = 0; // argv[0] is not an item
-	for (i = 1; i < argc; ++i)
-		items[i] = 1; // means it's an item, not an option
 
 	int opt;
 	while ((opt = getopt(argc, argv, optString)) != -1)
@@ -161,36 +149,23 @@ int getConfigAndItems(int argc, char **argv, int *items)
 		switch (opt)
 		{
 		case 'r':
-			items[optind - 1] = 0;
 			config.r = 1;
-			--result;
 			break;
 		case 'a':
-			items[optind - 1] = 0;
 			config.a = 1;
-			--result;
 			break;
 		case 'l':
-			items[optind - 2] = 0;
-			items[optind - 1] = 0;
-			result -= 2;
 			config.l = atoi(optarg);
 			if (config.l <= 0)
 				printf("Warning: -l is lower than 0, ignore.\n");
 			break;
 		case 'h':
-			items[optind - 2] = 0;
-			items[optind - 1] = 0;
 			config.h = atoi(optarg);
-			result -= 2;
 			if (config.h <= 0)
 				printf("Warning: -h is lower than 0, ignore.\n");
 			break;
 		case 'm':
-			items[optind - 1] = 0;
-			items[optind - 2] = 0;
 			config.m = atoi(optarg);
-			result -= 2;
 			if (config.m <= 0)
 				printf("Warning: -m is lower than 0, ignore.\n");
 			break;
@@ -198,16 +173,4 @@ int getConfigAndItems(int argc, char **argv, int *items)
 			break;
 		}
 	}
-
-	// discard the first '--'
-	for (i = 0; i < argc; ++i)
-	{
-		if (!strcmp(argv[i], "--"))
-		{
-			result--;
-			items[i] = 0;
-			break;
-		}
-	}
-	return result;
 }
