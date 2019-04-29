@@ -17,6 +17,8 @@ struct
 	int m;
 } config;
 
+struct stat buf;
+
 void getConfigAndItems(int argc, char **argv, int *items);
 void printItem(char *path);
 void printDir(char *path);
@@ -35,15 +37,7 @@ int main(int argc, char **argv)
 
 	if (argc == 1)
 	{
-		// list all files in current directory
-		char cwd[MAX_PATH_LENGTH + 1];
-		if (getcwd(cwd, sizeof(cwd)) != NULL)
-			printDir(cwd);
-		else
-		{
-			printf("Failed to get current work directory: %m.\n");
-			return 2;
-		}
+		printItem(".");
 	}
 	else
 	{
@@ -64,6 +58,15 @@ int main(int argc, char **argv)
 
 void printItem(char *path)
 {
+	if (stat(path, &buf))
+	{
+		printf("Failed to get stat of %s: %m\n", path);
+		return;
+	}
+	if (S_ISDIR(buf.st_mode))
+		printDir(path);
+	else
+		printf("%s\n", path);
 }
 
 void printDir(char *path)
@@ -71,11 +74,10 @@ void printDir(char *path)
 	DIR *dir = opendir(path);
 	if (!dir)
 	{
-		printf("Can not open dir: %s", path);
+		printf("Failed open dir %s: %m", path);
 		return;
 	}
 	struct dirent *item;
-	struct stat buf;
 	while (item = readdir(dir))
 	{
 		printf("%s\n", item->d_name);
