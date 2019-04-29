@@ -22,7 +22,7 @@ struct
 time_t now;
 struct stat buf;
 
-void getConfigAndItems(int argc, char **argv, int *items);
+int getConfigAndItems(int argc, char **argv, int *items);
 void printItem(char *path);
 void printDir(char *path);
 int judgeMLH();
@@ -39,9 +39,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	getConfigAndItems(argc, argv, items);
-
-	if (argc == 1)
+	if (!getConfigAndItems(argc, argv, items))
 	{
 		printItem(".");
 	}
@@ -140,8 +138,10 @@ void printDir(char *path)
 	closedir(dir);
 }
 
-void getConfigAndItems(int argc, char **argv, int *items)
+int getConfigAndItems(int argc, char **argv, int *items)
 {
+	int result = argc - 1;
+
 	// init config
 	config.r = 0;
 	config.a = 0;
@@ -163,14 +163,17 @@ void getConfigAndItems(int argc, char **argv, int *items)
 		case 'r':
 			items[optind - 1] = 0;
 			config.r = 1;
+			--result;
 			break;
 		case 'a':
 			items[optind - 1] = 0;
 			config.a = 1;
+			--result;
 			break;
 		case 'l':
 			items[optind - 2] = 0;
 			items[optind - 1] = 0;
+			result -= 2;
 			config.l = atoi(optarg);
 			if (config.l <= 0)
 				printf("Warning: -l is lower than 0, ignore.\n");
@@ -179,6 +182,7 @@ void getConfigAndItems(int argc, char **argv, int *items)
 			items[optind - 2] = 0;
 			items[optind - 1] = 0;
 			config.h = atoi(optarg);
+			result -= 2;
 			if (config.h <= 0)
 				printf("Warning: -h is lower than 0, ignore.\n");
 			break;
@@ -186,6 +190,7 @@ void getConfigAndItems(int argc, char **argv, int *items)
 			items[optind - 1] = 0;
 			items[optind - 2] = 0;
 			config.m = atoi(optarg);
+			result -= 2;
 			if (config.m <= 0)
 				printf("Warning: -m is lower than 0, ignore.\n");
 			break;
@@ -193,4 +198,5 @@ void getConfigAndItems(int argc, char **argv, int *items)
 			break;
 		}
 	}
+	return result;
 }
